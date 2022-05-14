@@ -1,0 +1,390 @@
+import discord
+from discord.ext import commands
+import asyncpg
+import asyncio
+import random
+
+class Test(discord.ui.View):
+    def __init__(self, users, game):
+        super().__init__(timeout=None)
+        self.users = users
+        self.game = game
+    @discord.ui.button(label="Oyla: 1",style=discord.ButtonStyle.red, row=0)
+    async def callback(self, button, interact):
+        await interact.response.send_message("sa")
+
+class Vote(discord.ui.View):
+    def __init__(self, users, game):
+        super().__init__(timeout=None)
+        self.users = users
+        self.game = game
+    async def send_message(self, button, interaction, id):
+        filtered = list(filter(lambda key: self.users[key]["id"] == interaction.user.id,list(self.users.keys())))
+        if len(filtered) == 0:
+            await interaction.response.send_message("Sen Bu Oyunda Değilsin!",ephemeral =True)
+            return
+        else:
+            if self.users[filtered[0]]["alive"] != "yes":
+                await interaction.response.send_message("Sen Yaşamıyorsun!",ephemeral =True)
+                return
+            filtered = filtered[0]
+            votes_list = self.game.votes
+            votes_list[id].append(filtered)
+            self.game.votes = votes_list
+            embed = discord.Embed(title="Oylama",color=discord.Colour.blurple())
+            #for key in list(votes_list.keys()):
+            #    member = self.game.ctx.guild.get_member(self.users[1]["id"])
+            #    other_users = []
+            #    for item in votes_list[key]:
+            #        user = self.game.ctx.guild.get_member(self.users[item]["id"])
+            #        other_users.append(user)
+            #    mapped = ' '.join(list(map(lambda m: m.mention,other_users)))
+            #    embed.add_field(name=f"{key} : {str(member)}", value=mapped if len(mapped) != 0 else "Yok")
+
+            for key in list(self.game.users.keys()):
+                member = self.game.ctx.guild.get_member(self.users[key]["id"])
+                other_users = []
+                for item in votes_list[key]:
+                    user = self.game.ctx.guild.get_member(self.users[key]["id"])
+                    other_users.append(user)
+                mapped = ' '.join(list(map(lambda m: m.mention,other_users)))
+                embed.add_field(name=f"{key} : {str(member)}", value=mapped if len(mapped) != 0 else "Yok")
+            await interaction.response.edit_message(embed=embed)
+    async def oyla_kapat():
+        for item in self.children:
+            item.disabled = True
+        await self.game.vote_message.edit(view=self)
+        self.stop()
+    @discord.ui.button(label="Oyla: 1", style=discord.ButtonStyle.red, row=0)
+    async def vote_1(self, button, interaction):
+        await self.send_message(button, interaction, 1)
+
+    @discord.ui.button(label="Oyla: 2", style=discord.ButtonStyle.red, row=0)
+    async def vote_2(self, button, interaction):
+        await self.send_message(button, interaction, 2)
+
+    @discord.ui.button(label="Oyla: 3", style=discord.ButtonStyle.red, row=0)
+    async def vote_3(self, button, interaction):
+        await self.send_message(button, interaction, 3)
+
+    @discord.ui.button(label="Oyla: 4", style=discord.ButtonStyle.red, row=0)
+    async def vote_4(self, button, interaction):
+        await self.send_message(button, interaction, 4)
+
+    @discord.ui.button(label="Oyla: 5", style=discord.ButtonStyle.red, row=1)
+    async def vote_5(self, button, interaction):
+        await self.send_message(button, interaction, 5)
+
+    @discord.ui.button(label="Oyla: 6", style=discord.ButtonStyle.red, row=1)
+    async def vote_6(self, button, interaction):
+        await self.send_message(button, interaction, 6)
+
+    @discord.ui.button(label="Oyla: 7", style=discord.ButtonStyle.red, row=1)
+    async def vote_7(self, button, interaction):
+        await self.send_message(button, interaction, 7)
+
+    @discord.ui.button(label="Oyla: 8", style=discord.ButtonStyle.red, row=1)
+    async def vote_8(self, button, interaction):
+        await self.send_message(button, interaction, 8)
+
+    @discord.ui.button(label="Oyla: 9", style=discord.ButtonStyle.red, row=2)
+    async def vote_9(self, button, interaction):
+        await self.send_message(button, interaction, 9)
+
+    @discord.ui.button(label="Oyla: 10", style=discord.ButtonStyle.red, row=2)
+    async def vote_10(self, button, interaction):
+        await self.send_message(button, interaction, 10)
+
+    @discord.ui.button(label="Oyla: 11", style=discord.ButtonStyle.red, row=2)
+    async def vote_11(self, button, interaction):
+        await self.send_message(button, interaction, 11)
+
+    @discord.ui.button(label="Oyla: 12", style=discord.ButtonStyle.red, row=2)
+    async def vote_12(self, button, interaction):
+        await self.send_message(button, interaction, 12)
+
+    @discord.ui.button(label="Oyla: 13", style=discord.ButtonStyle.red, row=3)
+    async def vote_13(self, button, interaction):
+        await self.send_message(button, interaction, 13)
+
+    @discord.ui.button(label="Oyla: 14", style=discord.ButtonStyle.red, row=3)
+    async def vote_14(self, button, interaction):
+        await self.send_message(button, interaction, 14)
+
+    @discord.ui.button(label="Oyla: 15", style=discord.ButtonStyle.red, row=3)
+    async def vote_15(self, button, interaction):
+        await self.send_message(button, interaction, 15)
+
+    @discord.ui.button(label="Oyla: 16", style=discord.ButtonStyle.red, row=3)
+    async def vote_16(self, button, interaction):
+        await self.send_message(button, interaction, 16)
+
+class Sheriff(discord.ui.View):
+    def __init__(self,users,round,game):
+        super().__init__(timeout=None)
+        self.users = users
+        self.round = round
+        self.game = game
+    async def send_message(self, button, interaction, id):
+        if self.game.round != "Day":
+            await interaction.response.send_message("Geceyken Kullanıcı Öldüremezsin!")
+            return
+        if self.users[id]["alive"] != "yes":
+            await interaction.user.send("Bu Kullanıcı Çoktan Ölmüş!")
+            button.disabled = True
+            await interaction.response.edit_message(view=self)
+        else:
+            for item in self.children:
+                item.disabled = True
+                item.style = discord.ButtonStyle.green
+            await interaction.response.edit_message(content=f"{id} ID'li Kişiyi Öldürüyorum", view=self)
+            filtered = list(filter(lambda key: self.users[key]["id"] == interaction.user.id, list(self.users.keys())))[0]
+            await self.game.kill_user(filtered, id)
+            self.stop()
+    @discord.ui.button(label="Öldür: 1", style=discord.ButtonStyle.blurple, row=0)
+    async def kill_1(self, button, interaction):
+        await self.send_message(button, interaction, 1)
+
+    @discord.ui.button(label="Öldür: 2", style=discord.ButtonStyle.blurple, row=0)
+    async def kill_2(self, button, interaction):
+        await self.send_message(button, interaction, 2)
+
+    @discord.ui.button(label="Öldür: 3", style=discord.ButtonStyle.blurple, row=0)
+    async def kill_3(self, button, interaction):
+        await self.send_message(button, interaction, 3)
+
+    @discord.ui.button(label="Öldür: 4", style=discord.ButtonStyle.blurple, row=0)
+    async def kill_4(self, button, interaction):
+        await self.send_message(button, interaction, 4)
+
+    @discord.ui.button(label="Öldür: 5", style=discord.ButtonStyle.blurple, row=1)
+    async def kill_5(self, button, interaction):
+        await self.send_message(button, interaction, 5)
+
+    @discord.ui.button(label="Öldür: 6", style=discord.ButtonStyle.blurple, row=1)
+    async def kill_6(self, button, interaction):
+        await self.send_message(button, interaction, 6)
+
+    @discord.ui.button(label="Öldür: 7", style=discord.ButtonStyle.blurple, row=1)
+    async def kill_7(self, button, interaction):
+        await self.send_message(button, interaction, 7)
+
+    @discord.ui.button(label="Öldür: 8", style=discord.ButtonStyle.blurple, row=1)
+    async def kill_8(self, button, interaction):
+        await self.send_message(button, interaction, 8)
+
+    @discord.ui.button(label="Öldür: 9", style=discord.ButtonStyle.blurple, row=2)
+    async def kill_9(self, button, interaction):
+        await self.send_message(button, interaction, 9)
+
+    @discord.ui.button(label="Öldür: 10", style=discord.ButtonStyle.blurple, row=2)
+    async def kill_10(self, button, interaction):
+        await self.send_message(button, interaction, 10)
+
+    @discord.ui.button(label="Öldür: 11", style=discord.ButtonStyle.blurple, row=2)
+    async def kill_11(self, button, interaction):
+        await self.send_message(button, interaction, 11)
+
+    @discord.ui.button(label="Öldür: 12", style=discord.ButtonStyle.blurple, row=2)
+    async def kill_12(self, button, interaction):
+        await self.send_message(button, interaction, 12)
+
+    @discord.ui.button(label="Öldür: 13", style=discord.ButtonStyle.blurple, row=3)
+    async def kill_13(self, button, interaction):
+        await self.send_message(button, interaction, 13)
+
+    @discord.ui.button(label="Öldür: 14", style=discord.ButtonStyle.blurple, row=3)
+    async def kill_14(self, button, interaction):
+        await self.send_message(button, interaction, 14)
+
+    @discord.ui.button(label="Öldür: 15", style=discord.ButtonStyle.blurple, row=3)
+    async def kill_15(self, button, interaction):
+        await self.send_message(button, interaction, 15)
+
+    @discord.ui.button(label="Öldür: 16", style=discord.ButtonStyle.blurple, row=3)
+    async def kill_16(self, button, interaction):
+        await self.send_message(button, interaction, 16)
+
+class Game:
+    def __init__(self, client, lobby_id, ctx):
+        self.client = client
+        self.votes = {}
+        self.users = {}
+        self.round = "Day"
+        self.jobs_obj = {"Villager": None, "Seer": None, "Fool": None, "Hunter":None, "Sheriff": Sheriff(self.users,self.round,self), "Werewolf": None, "Priest": None,"Apprentice Seer": None}
+        #self.jobs_obj = {"Villager": None, "Seer": Seer(self.users), "Fool": None, "Hunter":None, "Sheriff": Sheriff(self.users,self.round,self), "Werewolf": None, "Priest": Priest(self.users),"Apprentice Seer": Apprentice_Seer(self.users)}
+        self.jobs = {"Villager": {"max": 7,"given":0,"mission":"Kurtadamları Ve Kötü Rollü Kişileri Asarak Kazanmak."},"Seer":{"max":1,"given":0,"mission":"Geceleri Bir Kullanıcının Rolüne Bakarak Köylülere Bilgi Vermek"},"Fool":{"max":1,"given":0,"mission":"Kensini Astırmak"},"Hunter":{"max":1,"given":0,"mission":"Hedefini Astırmak"},"Sheriff":{"max":1,"given":0,"mission":"Kurt Adamları Birkere Silahla Vurma Hakkın Var. Onun Dışında Normal Köylüsün"},"Werewolf":{"max":3,"given":0,"mission": "Köylüleri Geceleri Öldürerek Kazanmak"}, "Priest":{"max":1,"given":0,"mission":"Zemzem Suyunu Bir Kullanıcıya Atarsın. Kullanıcı Bir Kurtadamsa Ölür. Eğer Değilse Sen Ölürsün"}, "Apprentice Seer":{"max":1,"given":0,"mission":"Geceleri Oyuncuların Auralarına Bakabilirsin"}}
+        self.timer = 12
+        self.vote_time = 60
+        self.vote_message = None
+        self.lobby_id = lobby_id
+        self.ctx = ctx
+
+    async def start_game(self, players):
+        for member in players:
+            remains = list(filter(lambda key: self.jobs[key]["max"] != self.jobs[key]["given"], list(self.jobs.keys())))
+            job = random.choice(remains)
+            self.jobs[job]["given"] += 1
+            self.users[players.index(member)+1] = {"Job": job, "alive": "yes","id":member.id}
+        for i in range(1,17):
+            self.votes[i] = []
+        await self.send_start_message()
+        await self.make_day(self.ctx)
+
+    async def send_start_message(self):
+        embed = discord.Embed(title="Rolün...", color = discord.Colour.blurple())
+        for user in list(self.users.keys()):
+            işler = self.users[user]["Job"].replace('Villager','Köylü').replace('Seer', 'Gözcü').replace('Fool', 'Soytarı').replace('Hunter','Kelle Avcısı').replace('Sheriff','Silahşör').replace('Werewolf','Kurtadam').replace('Priest','İmam').replace('Apprentice Seer','Aura Gözcüsü')
+            embed.description = f"ID (Numaran): {user}\n**Rolün**: {işler}\n\n**Görevin**: {self.jobs[self.users[user]['Job']]['mission']}"
+            member = self.ctx.guild.get_member(self.users[user]["id"])
+            await member.send(embed=embed)
+            if self.jobs_obj[self.users[user]["Job"]] != None:
+                await member.send("Vurmak İstediğin Kullanıcıyı Seç!",view=self.jobs_obj[self.users[user]["Job"]])
+
+    async def make_day(self, ctx):
+        embed = discord.Embed(
+           title="Oyuncular", color=discord.Colour.blurple())
+        for member in self.users:
+            embed.add_field(
+                name=f"ID: {member}", value=f"Ad: {str(ctx.guild.get_member(self.users[member]['id']))}\nYaşıyor: {'Evet' if self.users[member]['alive'] == 'yes' else 'Hayır'}")
+        embed.set_footer(
+           text=f"Lobi: {self.lobby_id}", icon_url="https://cdn.discordapp.com/avatars/845659385980256276/cad9f3ca6cc9fd4492e5aa7a637e3262.webp?size=1024")
+        await self.ctx.send("Gün Başladı!", embed=embed)
+        self.round = "Day"
+        msg = await self.ctx.send(f"Kalan Konuşma Süreniz: {self.timer}")
+        await msg.pin()
+        while self.timer != 0:
+            await asyncio.sleep(1)
+            self.timer -= 1
+            if self.timer % 10 == 0:
+                await msg.edit(content=f"Kalan Konuşma Süreniz: {self.timer}")
+        self.timer = 120
+        await msg.edit(content=f"Kalan Oylama Süreniz: {self.vote_time}")
+        self.vote_message = await self.ctx.send("Oylayın!",view=Vote(self.users,self))
+        #while self.vote_time != 0:
+        #    pass
+
+    async def kill_user(self, killer, kill):
+        pass
+
+
+class Lobbys(commands.Cog):
+    def __init__(self, client):
+        self.client = client
+
+    @commands.command(name="lobiler", aliases=["lobbys", "lb"])
+    @commands.guild_only()
+    async def lobbys(self, ctx):
+        async with self.client.pool.acquire() as con:
+            lobbys = await con.fetch(f"select * from lobby where server_id='{ctx.guild.id}' order by lobby_id asc")
+            embed = discord.Embed(
+               title="Lobiler", color=discord.Color.from_rgb(75, 196, 182))
+            for lob in lobbys:
+                embed.add_field(
+                   name=f"Lobi: {lob['lobby_id']}", value=f"Durum: {'<:dolu:863838040636129320>' if lob['status'] == 'playing' else '<:bekliyor:863838040228364320>' if lob['status'] == 'waiting' else '<:bos:863838040526422036>'}\nOyuncu Sayısı: {lob['players_count']}/16", inline=True)
+            await ctx.reply(embed=embed)
+
+    @commands.command(name="lobby-çık", aliases=["lb-e", "lb-ç","lb-çık"])
+    @commands.guild_only()
+    async def exit_lobby(self, ctx):
+        async with self.client.pool.acquire() as con:
+            all_lobbys = await con.fetch(f"select * from lobby where server_id='{ctx.guild.id}'")
+            old_lobby = list(filter(lambda lob: str(
+               ctx.author.id) in lob["players"], all_lobbys))
+            if len(old_lobby) != 0:
+                old_lobby = old_lobby[0]
+                new_member_list = old_lobby["players"]
+                new_member_list.pop(new_member_list.index(str(ctx.author.id)))
+                if int(old_lobby["players_count"]) - 1 == 0:
+                    await con.execute(f"update lobby set players=$1,players_count='{int(old_lobby['players_count'])-1}',status='empty' where server_id='{ctx.guild.id}' and lobby_id='{old_lobby['lobby_id']}'", new_member_list)
+                elif int(old_lobby["players_count"]) == 16:
+                    await ctx.reply("Şuanda Olduğun Lobide Oyun Başlamış! Çıkamazsın!")
+                    return
+                else:
+                    await con.execute(f"update lobby set players=$1,players_count='{int(old_lobby['players_count'])-1}',status='waiting' where server_id='{ctx.guild.id}' and lobby_id='{old_lobby['lobby_id']}'", new_member_list)
+                await ctx.send(f"Şuanda Olduğun `{old_lobby['lobby_id']}` Numaralı Lobiden Çıkartıyorum Seni.")
+            else:
+                await ctx.reply("Bir Lobide Değilsin")
+
+    @commands.command(name="force-start", aliases=["f-c"])
+    @commands.guild_only()
+    async def force_start(self, ctx):
+        async with self.client.pool.acquire() as con:
+            all_lobbys = await con.fetch(f"select * from lobby where server_id='{ctx.guild.id}'")
+            old_lobby = list(filter(lambda lob: str(
+               ctx.author.id) in lob["players"], all_lobbys))
+            if len(old_lobby) == 0:
+                await ctx.reply("Bir Lobiye girin!")
+                return
+            else:
+                def mapper(item):
+                    member = ctx.guild.get_member(int(item))
+                    return member
+                members = list(map(mapper, old_lobby[0]["players"]))
+                new_game = Game(self.client, old_lobby[0]["lobby_id"], ctx)
+                await new_game.start_game(members)
+
+
+
+    @commands.command(name="lobby-gir", aliases=["lb-j", "lb-join", "lobby-join"])
+    @commands.guild_only()
+    async def join_lobby(self, ctx, lobby_id=None):
+        async with self.client.pool.acquire() as con:
+            if lobby_id == None:
+                await ctx.send("Lütfen Bir Lobi Numarası Giriniz")
+                return
+            lobby = await con.fetchrow(f"select * from lobby where server_id='{ctx.guild.id}' and lobby_id='{lobby_id}'")
+            if lobby == None:
+                await ctx.send("Geçerli Bir Lobi Numarası Giriniz")
+                return
+            if lobby["players_count"] == "16":
+                await ctx.send("Bu Lobi Zaten Oyuna Başlamış Ve Ya Yakında Başlayacak!")
+                return
+            all_lobbys = await con.fetch(f"select * from lobby where server_id='{ctx.guild.id}'")
+            old_lobby = list(filter(lambda lob: str(
+               ctx.author.id) in lob["players"], all_lobbys))
+            if len(old_lobby) != 0:
+                old_lobby = old_lobby[0]
+                new_member_list = old_lobby["players"]
+                new_member_list.pop(new_member_list.index(str(ctx.author.id)))
+                if int(old_lobby["players_count"]) - 1 == 0:
+                    await con.execute(f"update lobby set players=$1,players_count='{int(old_lobby['players_count'])-1}',status='empty' where server_id='{ctx.guild.id}' and lobby_id='{old_lobby['lobby_id']}'", new_member_list)
+                elif int(old_lobby["players_count"]) == 16:
+                    await ctx.reply("Şuanda Olduğun Lobide Oyun Başlamış! Çıkamazsın!")
+                    return
+                else:
+                    await con.execute(f"update lobby set players=$1,players_count='{int(old_lobby['players_count'])-1}',status='waiting' where server_id='{ctx.guild.id}' and lobby_id='{old_lobby['lobby_id']}'", new_member_list)
+                await ctx.send(f"Şuanda Olduğun `{old_lobby['lobby_id']}` Numaralı Lobiden Çıkartıyorum Seni.")
+            try:
+                await ctx.author.send(f"Başarıyla {lobby_id} Numaralı Lobiye Katıldın.")
+            except:
+                await ctx.reply("DM'lerin Kapalı! Lütfen DMlerinizi Açınız")
+                return
+            if int(lobby["players_count"]) + 1 == 16:
+                new_member_list = lobby["players"]
+                new_member_list.append(str(ctx.author.id))
+                await con.execute(f"update lobby set players=$1,players_count='{int(lobby['players_count'])+1}',status='playing' where server_id='{ctx.guild.id}' and lobby_id='{lobby_id}'", new_member_list)
+
+                def mapper(item):
+                    member = ctx.guild.get_member(int(item))
+                    return member
+                members = list(map(mapper, lobby["players"]))
+                await ctx.reply(f"`{lobby_id}` Numaralı Lobiye Başarıyla Katıldın")
+                await ctx.send(f"Oyun Başlıyor!!\nLobi Numarası: `{lobby_id}`\nKatılımcılar: {' '.join(list(map(lambda m: m.mention,members)))}")
+                new_game = Game(self.client, lobby_id, ctx)
+                await new_game.start_game(members)
+            else:
+                new_member_list = lobby["players"]
+                new_member_list.append(str(ctx.author.id))
+                await con.execute(f"update lobby set players=$1,players_count='{int(lobby['players_count'])+1}',status='waiting' where server_id='{ctx.guild.id}' and lobby_id='{lobby_id}'", new_member_list)
+                await ctx.reply(f"`{lobby_id}` Numaralı Lobiye Başarıyla Katıldın")
+
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild):
+        async with self.client.pool.acquire() as con:
+            for i in range(1, 6):
+                await con.execute(f"insert into lobby(server_id,players,players_count,status,lobby_id) values('{guild.id}',$1,'0','empty','{i}')", [])
+
+
+def setup(client):
+    client.add_cog(Lobbys(client))
